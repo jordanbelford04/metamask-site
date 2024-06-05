@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EPP Wallet</title>
+    <!-- Подключение библиотеки Web3.js -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.3.6/dist/web3.min.js"></script>
+</head>
+<body>
+    <button onclick="connectMetaMask()">Connect MetaMask</button>
+    <div id="walletInfo" style="display: none;">
+        <h2>Wallet Info</h2>
+        <p id="walletAddress"></p>
+        <p id="balanceEPP"></p>
+        <button onclick="sendEPP()">Send EPP</button>
+        <p>Your wallet address for deposits:</p>
+        <p id="depositAddress"></p>
+    </div>
+
+    <script>
+        let web3;
+        let contractInstance;
+        let tokenAddress = '0xYourTokenAddress'; // Замените на адрес вашего токена EPP
+        const ERC20ABI = [ /* ABI вашего токена EPP */ ];
+
+        async function connectMetaMask() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    web3 = new Web3(window.ethereum);
+                    const accounts = await web3.eth.getAccounts();
+                    const address = accounts[0];
+                    document.getElementById('walletAddress').innerText = 'Wallet Address: ' + address;
+
+                    // Получаем баланс EPP
+                    const balanceEPP = await getEPPBalance(address);
+                    document.getElementById('balanceEPP').innerText = 'EPP Balance: ' + balanceEPP + ' EPP';
+
+                    // Отображаем адрес для депозитов
+                    document.getElementById('depositAddress').innerText = address;
+
+                    // Показываем личный кабинет после подключения MetaMask
+                    document.getElementById('walletInfo').style.display = 'block';
+
+                    // Инициализируем контракт токена
+                    contractInstance = new web3.eth.Contract(ERC20ABI, tokenAddress);
+                } catch (error) {
+                    alert('Error connecting to MetaMask: ' + error.message);
+                }
+            } else {
+                alert('To use MetaMask, install the extension in your browser.');
+            }
+        }
+
+        async function getEPPBalance(address) {
+            const balance = await contractInstance.methods.balanceOf(address).call();
+            return web3.utils.fromWei(balance, 'ether');
+        }
+
+        async function sendEPP() {
+            const amount = prompt('Enter the amount of EPP to send:');
+            if (amount) {
+                const amountInWei = web3.utils.toWei(amount, 'ether');
+                try {
+                    await contractInstance.methods.transfer('0xRecipientAddress', amountInWei).send({ from: web3.eth.defaultAccount });
+                    alert('EPP sent successfully!');
+                } catch (error) {
+                    alert('Error sending EPP: ' + error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
